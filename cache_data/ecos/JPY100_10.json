@@ -1,0 +1,85 @@
+{
+  "saved_at": "2026-07-19T23:56:33",
+  "history": [
+    {
+      "date": "20260703",
+      "value": 963.69,
+      "currency_code": "JPY(100)",
+      "item_name": "원/일본엔(100엔)",
+      "unit": "원",
+      "source": "한국은행 ECOS"
+    },
+    {
+      "date": "20260706",
+      "value": 953.61,
+      "currency_code": "JPY(100)",
+      "item_name": "원/일본엔(100엔)",
+      "unit": "원",
+      "source": "한국은행 ECOS"
+    },
+    {
+      "date": "20260707",
+      "value": 945.41,
+      "currency_code": "JPY(100)",
+      "item_name": "원/일본엔(100엔)",
+      "unit": "원",
+      "source": "한국은행 ECOS"
+    },
+    {
+      "date": "20260708",
+      "value": 941.04,
+      "currency_code": "JPY(100)",
+      "item_name": "원/일본엔(100엔)",
+      "unit": "원",
+      "source": "한국은행 ECOS"
+    },
+    {
+      "date": "20260709",
+      "value": 928.85,
+      "currency_code": "JPY(100)",
+      "item_name": "원/일본엔(100엔)",
+      "unit": "원",
+      "source": "한국은행 ECOS"
+    },
+    {
+      "date": "20260710",
+      "value": 926.55,
+      "currency_code": "JPY(100)",
+      "item_name": "원/일본엔(100엔)",
+      "unit": "원",
+      "source": "한국은행 ECOS"
+    },
+    {
+      "date": "20260713",
+      "value": 930.08,
+      "currency_code": "JPY(100)",
+      "item_name": "원/일본엔(100엔)",
+      "unit": "원",
+      "source": "한국은행 ECOS"
+    },
+    {
+      "date": "20260714",
+      "value": 926.52,
+      "currency_code": "JPY(100)",
+      "item_name": "원/일본엔(100엔)",
+      "unit": "원",
+      "source": "한국은행 ECOS"
+    },
+    {
+      "date": "20260715",
+      "value": 919.83,
+      "currency_code": "JPY(100)",
+      "item_name": "원/일본엔(100엔)",
+      "unit": "원",
+      "source": "한국은행 ECOS"
+    },
+    {
+      "date": "20260716",
+      "value": 918.36,
+      "currency_code": "JPY(100)",
+      "item_name": "원/일본엔(100엔)",
+      "unit": "원",
+      "source": "한국은행 ECOS"
+    }
+  ]
+}
