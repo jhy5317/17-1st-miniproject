@@ -1,6 +1,8 @@
+import csv
 from datetime import datetime
+from io import StringIO
 
-from flask import Flask, jsonify, render_template
+from flask import Flask, Response, jsonify, render_template
 from ecos_api import EcosApiError, get_recent_exchange_history
 from get_api import get_exchange_data
 
