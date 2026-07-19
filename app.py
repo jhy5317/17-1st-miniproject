@@ -137,6 +137,43 @@ def rates():
         metadata=metadata,
     )
 
+@app.route("/rates/download.csv")
+def download_rates_csv():
+    """전체 환율 데이터를 엑셀에서도 열 수 있는 UTF-8 CSV로 제공합니다."""
+
+    exchange_data, date, error, _metadata = get_exchange_data()
+
+    if error or not exchange_data:
+        return Response(
+            error or "다운로드할 환율 데이터가 없습니다.",
+            status=503,
+            content_type="text/plain; charset=utf-8",
+        )
+
+    exchange_data = sort_and_enrich_exchange_data(exchange_data)
+    fieldnames = [
+        "통화코드",
+        "통화명",
+        "전신환매입률",
+        "전신환매도율",
+        "매매기준율",
+        "장부가격",
+    ]
+    output = StringIO()
+    writer = csv.DictWriter(output, fieldnames=fieldnames, extrasaction="ignore")
+    writer.writeheader()
+    writer.writerows(exchange_data)
+    csv_content = "\ufeff" + output.getvalue()
+
+    return Response(
+        csv_content,
+        content_type="text/csv; charset=utf-8",
+        headers={
+            "Content-Disposition": (
+                f'attachment; filename="exchange_rates_{date}.csv"'
+            )
+        },
+    )
 
 @app.route("/calculator")
 def calculator():

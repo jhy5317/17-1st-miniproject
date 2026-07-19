@@ -45,12 +45,20 @@
               metadata.checked_at }}
             </p>
           </div>
-          <input
-            id="searchInput"
-            type="search"
-            placeholder="통화명 또는 통화코드 검색"
-            class="w-full rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-emerald-400 sm:w-80"
-          />
+          <div class="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+            <input
+              id="searchInput"
+              type="search"
+              placeholder="통화명 또는 통화코드 검색"
+              class="w-full rounded-xl border border-white/10 bg-white/10 px-4 py-3 text-sm text-white outline-none placeholder:text-slate-500 focus:border-emerald-400 sm:w-72"
+            />
+            <a
+              href="{{ url_for('download_rates_csv') }}"
+              class="inline-flex shrink-0 items-center justify-center gap-2 rounded-xl bg-emerald-400 px-4 py-3 text-sm font-black text-slate-950 transition hover:bg-emerald-300"
+            >
+              <span aria-hidden="true">↓</span> CSV 다운로드
+            </a>
+          </div>
         </div>
       </div>
     </header>
