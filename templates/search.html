@@ -31,7 +31,19 @@
         >
           <div>
             <h1 class="text-3xl font-black">전체 환율</h1>
-            <p class="mt-2 text-sm text-slate-400">기준일 {{ date }}</p>
+            <div
+              class="mt-2 flex flex-wrap items-center gap-2 text-sm text-slate-400"
+            >
+              <span>기준일 {{ date }}</span>
+              <span
+                class="rounded-full px-2.5 py-1 text-xs font-bold {% if metadata.is_today %}bg-emerald-400/15 text-emerald-300{% else %}bg-amber-400/15 text-amber-300{% endif %}"
+                >{{ metadata.status_label }}</span
+              >
+            </div>
+            <p class="mt-2 text-xs text-slate-500">
+              {{ metadata.message }} · {{ metadata.source }} · 확인 {{
+              metadata.checked_at }}
+            </p>
           </div>
           <input
             id="searchInput"

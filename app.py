@@ -101,16 +101,16 @@ def build_calculator_currencies(exchange_data):
 
 
 def get_page_data():
-    exchange_data, date, error = get_exchange_data()
+    exchange_data, date, error, metadata = get_exchange_data()
     formatted_date = datetime.strptime(date, "%Y%m%d").strftime("%Y년 %m월 %d일")
     exchange_data = sort_and_enrich_exchange_data(exchange_data or [])
 
-    return exchange_data, formatted_date, error
+    return exchange_data, formatted_date, error, metadata
 
 
 @app.route("/")
 def index():
-    exchange_data, formatted_date, error = get_page_data()
+    exchange_data, formatted_date, error, metadata = get_page_data()
     currency_map = {item["통화코드"]: item for item in exchange_data}
     primary_exchange_data = [
         currency_map[code] for code in PRIMARY_CURRENCIES if code in currency_map
@@ -121,24 +121,26 @@ def index():
         exchange_data=primary_exchange_data,
         date=formatted_date,
         error=error,
+        metadata=metadata,
     )
 
 
 @app.route("/rates")
 def rates():
-    exchange_data, formatted_date, error = get_page_data()
+    exchange_data, formatted_date, error, metadata = get_page_data()
 
     return render_template(
         "search.html",
         exchange_data=exchange_data,
         date=formatted_date,
         error=error,
+        metadata=metadata,
     )
 
 
 @app.route("/calculator")
 def calculator():
-    exchange_data, formatted_date, error = get_page_data()
+    exchange_data, formatted_date, error, metadata = get_page_data()
     currencies = build_calculator_currencies(exchange_data)
 
     return render_template(
@@ -146,14 +148,46 @@ def calculator():
         currencies=currencies,
         date=formatted_date,
         error=error,
+        metadata=metadata,
     )
 
 
 @app.route("/api/ecos/exchange/<currency_code>")
 def ecos_exchange_history(currency_code):
     try:
-        history = get_recent_exchange_history(currency_code.upper(), business_days=10)
-        return jsonify({"currency_code": currency_code.upper(), "history": history})
+        history, cache_info = get_recent_exchange_history(
+            currency_code.upper(),
+            business_days=10,
+            include_cache_info=True,
+        )
+        latest_date = history[-1]["date"] if history else None
+        today = datetime.today().strftime("%Y%m%d")
+        is_today = latest_date == today
+        metadata = {
+            "source": "한국은행 ECOS",
+            "requested_date": today,
+            "data_date": latest_date,
+            "is_today": is_today,
+            "status": "today" if is_today else "recent_business_day",
+            "status_label": "오늘 데이터" if is_today else "최근 영업일 데이터",
+            "message": (
+                "오늘 공표된 최신 ECOS 환율입니다."
+                if is_today
+                else f"ECOS에서 확인되는 가장 최근 영업일({latest_date}) 데이터입니다."
+            ),
+            "checked_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+            "from_cache": cache_info["from_cache"],
+            "cache_is_stale": cache_info["is_stale"],
+            "cache_saved_at": cache_info["saved_at"],
+            "cache_message": cache_info["message"],
+        }
+        return jsonify(
+            {
+                "currency_code": currency_code.upper(),
+                "history": history,
+                "metadata": metadata,
+            }
+        )
     except EcosApiError as error:
         return jsonify({"error": str(error)}), 503
 

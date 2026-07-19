@@ -157,9 +157,15 @@
             <div
               class="mt-6 flex flex-col gap-1 text-xs leading-5 text-slate-500 sm:flex-row sm:justify-between"
             >
-              <p>기준일 {{ date }} · 한국수출입은행 매매기준율</p>
+              <p>
+                기준일 {{ date }} · {{ metadata.source }} 매매기준율 · {{
+                metadata.status_label }}
+              </p>
               <p>실제 거래 환율과 수수료는 금융기관별로 다를 수 있습니다.</p>
             </div>
+            <p class="mt-2 text-xs text-slate-600">
+              {{ metadata.message }} · 확인 {{ metadata.checked_at }}
+            </p>
           </section>
           {% endif %}
         </div>

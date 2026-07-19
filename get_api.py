@@ -13,6 +13,28 @@ URL = "https://oapi.koreaexim.go.kr/site/program/financial/exchangeJSON"
 CSV_DIR = Path(__file__).resolve().parent / "csv_data"
 
 
+def build_data_metadata(requested_date, data_date, from_cache=False):
+    """화면에 표시할 데이터의 최신 상태와 출처 정보를 만듭니다."""
+
+    is_today = requested_date == data_date
+
+    return {
+        "source": "한국수출입은행",
+        "requested_date": requested_date,
+        "data_date": data_date,
+        "is_today": is_today,
+        "from_cache": from_cache,
+        "status": "today" if is_today else "recent_business_day",
+        "status_label": "오늘 데이터" if is_today else "최근 영업일 데이터",
+        "message": (
+            "오늘 고시된 최신 환율입니다."
+            if is_today
+            else f"오늘 환율이 없어 {data_date}의 최근 영업일 환율을 표시합니다."
+        ),
+        "checked_at": datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
+    }
+
+
 def load_latest_exchange_data():
     """저장된 환율 CSV 중 가장 최근 날짜의 데이터를 불러옵니다."""
 
@@ -28,6 +50,9 @@ def load_latest_exchange_data():
             continue
 
         if not df.empty:
+            if "통화코드" in df.columns:
+                df = df[df["통화코드"] != "KRW"]
+
             return df.to_dict(orient="records"), date
 
     return None, None
@@ -60,6 +85,8 @@ def format_exchange_data(json_data):
         errors="ignore",
     )
 
+    df = df[df["통화코드"] != "KRW"]
+
     return df
 
 
@@ -69,9 +96,11 @@ def get_saved_data_or_error(date, error_message):
     exchange_data, saved_date = load_latest_exchange_data()
 
     if exchange_data:
-        return exchange_data, saved_date, None
+        metadata = build_data_metadata(date, saved_date, from_cache=True)
+        return exchange_data, saved_date, None, metadata
 
-    return None, date, error_message
+    metadata = build_data_metadata(date, date)
+    return None, date, error_message, metadata
 
 
 def get_exchange_data():
@@ -99,7 +128,8 @@ def get_exchange_data():
                 encoding="utf-8-sig",
             )
 
-            return df.to_dict(orient="records"), date, None
+            metadata = build_data_metadata(date, date)
+            return df.to_dict(orient="records"), date, None, metadata
 
         return get_saved_data_or_error(
             date,
@@ -120,10 +150,11 @@ def get_exchange_data():
 
 
 if __name__ == "__main__":
-    exchange_data, date, error = get_exchange_data()
+    exchange_data, date, error, metadata = get_exchange_data()
 
     if error:
         print(error)
     else:
         print(f"기준일: {date}")
+        print(metadata["message"])
         print(pd.DataFrame(exchange_data))
