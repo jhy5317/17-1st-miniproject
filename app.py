@@ -1,117 +1,161 @@
-# from flask import Flask, render_template, request
-
-
-# app = Flask(__name__)
-# app.config["TEMPLATES_AUTO_RELORD"] = True
-
-# @app.route('/')
-# def homepage():
-#     return render_template("index.html")
-
-# @app.route('/search')
-# def search():
-#     return render_template("search.html")
-
-# if __name__ == "__main__":
-#     app.run(debug = True)
-import os
 from datetime import datetime
 
-import pandas as pd
-import requests
-from dotenv import load_dotenv
-from flask import Flask, render_template
-
-load_dotenv()
+from flask import Flask, jsonify, render_template
+from ecos_api import EcosApiError, get_recent_exchange_history
+from get_api import get_exchange_data
 
 app = Flask(__name__)
+PRIMARY_CURRENCIES = ["USD", "JPY(100)", "EUR", "CNH", "GBP"]
+POPULAR_CURRENCIES = [
+    "USD",
+    "JPY(100)",
+    "CNH",
+    "EUR",
+    "GBP",
+    "CAD",
+    "AUD",
+    "SGD",
+    "HKD",
+    "THB",
+    "CHF",
+    "NZD",
+]
+CURRENCY_ALIASES = {
+    "AED": "아랍에미리트 UAE 디르함",
+    "AUD": "호주 달러",
+    "BHD": "바레인 디나르",
+    "BND": "브루나이 달러",
+    "CAD": "캐나다 달러",
+    "CHF": "스위스 프랑",
+    "CNH": "중국 위안 위안화",
+    "DKK": "덴마크 크로네",
+    "EUR": "유럽 유로 유로존",
+    "GBP": "영국 파운드",
+    "HKD": "홍콩 달러",
+    "IDR(100)": "인도네시아 루피아",
+    "JPY(100)": "일본 엔 옌",
+    "KWD": "쿠웨이트 디나르",
+    "MYR": "말레이시아 말레이지아 링기트",
+    "NOK": "노르웨이 크로네",
+    "NZD": "뉴질랜드 달러",
+    "SAR": "사우디아라비아 사우디 리얄",
+    "SEK": "스웨덴 크로나",
+    "SGD": "싱가포르 달러",
+    "THB": "태국 바트",
+    "USD": "미국 달러",
+}
 
-AUTH_KEY = os.getenv("AUTH_KEY")
-URL = "https://oapi.koreaexim.go.kr/site/program/financial/exchangeJSON"
+
+def sort_and_enrich_exchange_data(exchange_data):
+    """KRW를 제외하고 검색 별칭과 자주 찾는 통화 순서를 적용합니다."""
+
+    priority = {code: index for index, code in enumerate(POPULAR_CURRENCIES)}
+    filtered_data = []
+
+    for item in exchange_data:
+        code = item.get("통화코드")
+
+        if code == "KRW":
+            continue
+
+        enriched_item = dict(item)
+        enriched_item["검색키워드"] = CURRENCY_ALIASES.get(code, "")
+        filtered_data.append(enriched_item)
+
+    return sorted(
+        filtered_data,
+        key=lambda item: (
+            priority.get(item["통화코드"], len(priority)),
+            item.get("통화명", ""),
+        ),
+    )
 
 
-def get_exchange_data():
-    """한국수출입은행 API에서 오늘의 환율 정보를 가져옵니다."""
+def build_calculator_currencies(exchange_data):
+    """환율 계산기에 사용할 통화별 1단위 원화 가격을 만듭니다."""
 
-    date = datetime.today().strftime("%Y%m%d")
+    currencies = [
+        {
+            "code": "KRW",
+            "name": "대한민국 원",
+            "rate": 1.0,
+        }
+    ]
 
-    params = {
-        "authkey": AUTH_KEY,
-        "searchdate": date,
-        "data": "AP01",
-    }
+    for item in exchange_data:
+        code = item["통화코드"]
+        rate = float(str(item["매매기준율"]).replace(",", ""))
 
-    try:
-        response = requests.get(
-            URL,
-            params=params,
-            timeout=10,
-        )
-        response.raise_for_status()
+        if "(100)" in code:
+            rate /= 100
 
-        json_data = response.json()
-
-        if not isinstance(json_data, list) or len(json_data) == 0:
-            return None, date, "오늘 날짜의 환율 데이터가 없습니다."
-
-        df = pd.DataFrame(json_data)
-
-        df = df.rename(
-            columns={
-                "result": "결과",
-                "cur_unit": "통화코드",
-                "ttb": "전신환매입률",
-                "tts": "전신환매도율",
-                "deal_bas_r": "매매기준율",
-                "bkpr": "장부가격",
-                "yy_efee_r": "년환가료율",
-                "ten_dd_efee_r": "10일환가료율",
-                "kftc_bkpr": "서울외국환중개장부가격",
-                "kftc_deal_bas_r": "서울외국환중개매매기준율",
-                "cur_nm": "통화명",
+        currencies.append(
+            {
+                "code": code.replace("(100)", ""),
+                "name": item["통화명"],
+                "rate": rate,
             }
         )
 
-        df.drop(
-            columns=["결과", "년환가료율", "10일환가료율"],
-            inplace=True,
-            errors="ignore",
-        )
+    return currencies
 
-        os.makedirs("csv_data", exist_ok=True)
 
-        csv_path = f"./csv_data/exchange_{date}.csv"
+def get_page_data():
+    exchange_data, date, error = get_exchange_data()
+    formatted_date = datetime.strptime(date, "%Y%m%d").strftime("%Y년 %m월 %d일")
+    exchange_data = sort_and_enrich_exchange_data(exchange_data or [])
 
-        df.to_csv(
-            csv_path,
-            index=False,
-            encoding="utf-8-sig",
-        )
-
-        # HTML 템플릿에 전달하기 좋은 형태로 변환
-        exchange_data = df.to_dict(orient="records")
-
-        return exchange_data, date, None
-
-    except requests.RequestException as error:
-        return None, date, f"API 요청 중 오류가 발생했습니다: {error}"
-
-    except ValueError:
-        return None, date, "API 응답을 JSON 형식으로 변환하지 못했습니다."
+    return exchange_data, formatted_date, error
 
 
 @app.route("/")
 def index():
-    exchange_data, date, error = get_exchange_data()
-
-    formatted_date = datetime.strptime(date, "%Y%m%d").strftime("%Y년 %m월 %d일")
+    exchange_data, formatted_date, error = get_page_data()
+    currency_map = {item["통화코드"]: item for item in exchange_data}
+    primary_exchange_data = [
+        currency_map[code] for code in PRIMARY_CURRENCIES if code in currency_map
+    ]
 
     return render_template(
         "index.html",
+        exchange_data=primary_exchange_data,
+        date=formatted_date,
+        error=error,
+    )
+
+
+@app.route("/rates")
+def rates():
+    exchange_data, formatted_date, error = get_page_data()
+
+    return render_template(
+        "search.html",
         exchange_data=exchange_data,
         date=formatted_date,
         error=error,
     )
+
+
+@app.route("/calculator")
+def calculator():
+    exchange_data, formatted_date, error = get_page_data()
+    currencies = build_calculator_currencies(exchange_data)
+
+    return render_template(
+        "calculator.html",
+        currencies=currencies,
+        date=formatted_date,
+        error=error,
+    )
+
+
+@app.route("/api/ecos/exchange/<currency_code>")
+def ecos_exchange_history(currency_code):
+    try:
+        history = get_recent_exchange_history(currency_code.upper(), business_days=10)
+        return jsonify({"currency_code": currency_code.upper(), "history": history})
+    except EcosApiError as error:
+        return jsonify({"error": str(error)}), 503
 
 
 if __name__ == "__main__":

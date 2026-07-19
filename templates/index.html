@@ -1,234 +1,436 @@
-<!-- <!doctype html>
-
-<html>
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
-    <title>17기 1ST Mini Project</title>
-    <link
-      rel="icon"
-      type="image/x-icon"
-      href="{{ url_for('static', filename='favicon.png') }}"
-    />
-  </head>
-
-  <body>
-    <div class="w-full h-40">
-      <div class="w-5xl h-full mx-auto">
-        <h1
-          class="text-3xl h-full text-[#34A99D] font-bold flex justify-center items-center"
-        >
-          실시간 환율 정보
-        </h1>
-        <div class="w-full"></div>
-      </div>
-    </div>
-  </body>
-</html> -->
-
 <!doctype html>
 <html lang="ko">
   <head>
     <meta charset="UTF-8" />
-
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-
-    <title>오늘의 환율 정보</title>
-
+    <meta
+      name="description"
+      content="주요 통화의 오늘 환율을 간편하게 확인하세요."
+    />
+    <title>오늘의 환율 | Korea Exchange</title>
+    <link
+      rel="icon"
+      type="image/png"
+      href="{{ url_for('static', filename='favicon.png') }}"
+    />
     <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.5.1/dist/chart.umd.min.js"></script>
   </head>
 
-  <body class="min-h-screen bg-slate-100 text-slate-800">
-    <header class="bg-slate-900 text-white shadow-lg">
-      <div class="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
-        <div
-          class="flex flex-col gap-2 sm:flex-row sm:items-end sm:justify-between"
+  <body class="min-h-screen bg-slate-950 text-white antialiased">
+    <div class="relative isolate min-h-screen overflow-hidden">
+      <div
+        class="absolute -left-32 -top-32 h-96 w-96 rounded-full bg-emerald-500/20 blur-3xl"
+      ></div>
+      <div
+        class="absolute -right-24 top-40 h-96 w-96 rounded-full bg-cyan-400/10 blur-3xl"
+      ></div>
+
+      <header class="relative mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
+        <nav
+          class="flex items-center justify-between border-b border-white/10 py-5"
+        >
+          <a href="/" class="flex items-center gap-3">
+            <span
+              class="grid h-10 w-10 place-items-center rounded-xl bg-emerald-400 text-lg font-black text-slate-950"
+              >₩</span
+            >
+            <div>
+              <p class="text-sm font-bold">Korea Exchange</p>
+              <p class="text-xs text-slate-400">오늘의 환율 정보</p>
+            </div>
+          </a>
+          <div class="flex items-center gap-2">
+            <a
+              href="{{ url_for('calculator') }}"
+              class="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-emerald-400/40 hover:bg-emerald-400/10 hover:text-emerald-300"
+              >환율 계산기</a
+            >
+            <a
+              href="{{ url_for('rates') }}"
+              class="rounded-xl border border-white/10 bg-white/5 px-4 py-2.5 text-sm font-semibold text-slate-200 transition hover:border-emerald-400/40 hover:bg-emerald-400/10 hover:text-emerald-300"
+              >환율 검색하기</a
+            >
+          </div>
+        </nav>
+      </header>
+
+      <main
+        class="relative mx-auto max-w-6xl px-4 pb-16 pt-14 sm:px-6 lg:px-8 lg:pt-20"
+      >
+        <section class="max-w-3xl">
+          <p
+            class="text-sm font-bold uppercase tracking-[0.24em] text-emerald-400"
+          >
+            Daily exchange rates
+          </p>
+          <h1
+            class="mt-4 text-4xl font-black leading-tight tracking-tight sm:text-5xl"
+          >
+            주요 환율만<br /><span class="text-emerald-400"
+              >한눈에 확인하세요.</span
+            >
+          </h1>
+          <div
+            class="mt-6 flex flex-wrap items-center gap-3 text-sm text-slate-300"
+          >
+            <span>한국수출입은행 제공</span>
+            <span class="text-slate-600">•</span>
+            <span>기준일 {{ date }}</span>
+          </div>
+        </section>
+
+        {% if error %}
+        <section
+          class="mt-10 rounded-3xl border border-red-400/20 bg-red-400/10 p-7"
+          role="alert"
+        >
+          <h2 class="text-lg font-bold text-red-200">
+            환율 정보를 불러오지 못했습니다.
+          </h2>
+          <p class="mt-2 text-sm text-red-100/80">{{ error }}</p>
+        </section>
+        {% elif exchange_data %}
+        <section class="mt-12 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+          {% for item in exchange_data %}
+          <button
+            type="button"
+            class="currency-card group w-full rounded-3xl border border-white/10 bg-white/[0.06] p-5 text-left backdrop-blur transition hover:-translate-y-1 hover:border-emerald-400/40 hover:bg-white/[0.09] focus:outline-none focus:ring-2 focus:ring-emerald-400"
+            data-currency="{{ item['통화코드'] }}"
+            data-name="{{ item['통화명'] }}"
+          >
+            <div class="flex items-start justify-between gap-3">
+              <span
+                class="rounded-xl bg-white/10 px-3 py-2 text-xs font-black text-emerald-300"
+                >{{ item["통화코드"] }}</span
+              >
+              <span class="text-xs text-slate-500">기준율</span>
+            </div>
+            <p class="mt-5 truncate text-sm font-semibold text-slate-300">
+              {{ item["통화명"] }}
+            </p>
+            <p class="mt-2 text-2xl font-black tabular-nums text-white">
+              {{ item["매매기준율"] }}
+            </p>
+            <div
+              class="mt-5 border-t border-white/10 pt-4 text-xs text-slate-400"
+            >
+              <div class="flex justify-between gap-3">
+                <span>매입</span
+                ><span class="tabular-nums">{{ item["전신환매입률"] }}</span>
+              </div>
+              <div class="mt-2 flex justify-between gap-3">
+                <span>매도</span
+                ><span class="tabular-nums">{{ item["전신환매도율"] }}</span>
+              </div>
+            </div>
+            <p
+              class="mt-4 text-xs font-bold text-emerald-400 opacity-0 transition group-hover:opacity-100"
+            >
+              10일 추이 보기 →
+            </p>
+          </button>
+          {% endfor %}
+        </section>
+
+        <section
+          class="mt-6 rounded-3xl border border-dashed border-white/15 bg-white/[0.03] p-6 sm:flex sm:items-center sm:justify-between"
         >
           <div>
-            <p class="text-sm font-medium text-emerald-400">
-              Korea Exchange Rate
-            </p>
-
-            <h1 class="mt-1 text-3xl font-bold tracking-tight">
-              오늘의 환율 정보
-            </h1>
-
-            <p class="mt-2 text-sm text-slate-300">
-              한국수출입은행 환율 API를 기반으로 제공됩니다.
+            <h2 class="font-bold">다른 국가의 환율도 확인해 보세요.</h2>
+            <p class="mt-1 text-sm text-slate-400">
+              전체 통화 목록에서 이름이나 통화코드로 검색할 수 있습니다.
             </p>
           </div>
-
-          <div class="rounded-lg bg-slate-800 px-4 py-2 text-sm text-slate-200">
-            기준일: {{ date }}
-          </div>
-        </div>
-      </div>
-    </header>
-
-    <main class="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">
-      {% if error %}
-
-      <div
-        class="rounded-xl border border-red-200 bg-red-50 p-6 text-red-700 shadow-sm"
-      >
-        <h2 class="text-lg font-bold">환율 정보를 불러오지 못했습니다.</h2>
-
-        <p class="mt-2">{{ error }}</p>
-      </div>
-
-      {% elif exchange_data %}
-
-      <section class="overflow-hidden rounded-2xl bg-white shadow-md">
-        <div class="border-b border-slate-200 px-6 py-5">
-          <div
-            class="flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between"
+          <a
+            href="{{ url_for('rates') }}"
+            class="mt-5 inline-flex items-center gap-2 rounded-xl bg-emerald-400 px-5 py-3 text-sm font-black text-slate-950 transition hover:bg-emerald-300 sm:mt-0"
+            >환율 검색하기 <span aria-hidden="true">→</span></a
           >
-            <div>
-              <h2 class="text-xl font-bold text-slate-900">통화별 환율</h2>
+        </section>
+        {% else %}
+        <section
+          class="mt-10 rounded-3xl border border-white/10 bg-white/5 p-10 text-center text-slate-400"
+        >
+          표시할 환율 정보가 없습니다.
+        </section>
+        {% endif %}
 
-              <p class="mt-1 text-sm text-slate-500">
-                총 {{ exchange_data | length }}개의 통화 정보
-              </p>
+        <p class="mt-8 text-center text-xs leading-6 text-slate-500">
+          제공되는 환율은 참고용이며 실제 거래 시 적용되는 환율과 다를 수
+          있습니다.
+        </p>
+      </main>
+    </div>
+
+    <div
+      id="currencyModal"
+      class="fixed inset-0 z-50 hidden items-end justify-center bg-slate-950/80 p-0 backdrop-blur-sm sm:items-center sm:p-6"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modalTitle"
+    >
+      <div
+        id="modalPanel"
+        class="max-h-[92vh] w-full max-w-4xl overflow-y-auto rounded-t-3xl border border-white/10 bg-slate-900 p-5 shadow-2xl sm:rounded-3xl sm:p-8"
+      >
+        <div class="flex items-start justify-between gap-4">
+          <div>
+            <p id="modalCode" class="text-sm font-black text-emerald-400"></p>
+            <h2
+              id="modalTitle"
+              class="mt-1 text-2xl font-black sm:text-3xl"
+            ></h2>
+            <p class="mt-2 text-sm text-slate-400">최근 10영업일 매매기준율</p>
+          </div>
+          <button
+            id="modalClose"
+            type="button"
+            class="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/10 text-xl text-slate-300 transition hover:bg-white/15 hover:text-white"
+            aria-label="팝업 닫기"
+          >
+            ×
+          </button>
+        </div>
+
+        <div id="modalLoading" class="py-20 text-center text-sm text-slate-400">
+          환율 데이터를 불러오는 중입니다.
+        </div>
+        <div
+          id="modalError"
+          class="mt-8 hidden rounded-2xl border border-red-400/20 bg-red-400/10 p-6 text-sm text-red-100"
+        ></div>
+
+        <div id="modalContent" class="hidden">
+          <div class="mt-8 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <div class="rounded-2xl bg-white/[0.06] p-4">
+              <p class="text-xs font-semibold text-slate-500">최신 환율</p>
+              <p
+                id="latestValue"
+                class="mt-2 text-xl font-black tabular-nums"
+              ></p>
             </div>
-
-            <div class="mt-3 sm:mt-0">
-              <input
-                id="searchInput"
-                type="text"
-                placeholder="통화명 또는 통화코드 검색"
-                class="w-full rounded-lg border border-slate-300 px-4 py-2 text-sm outline-none transition focus:border-emerald-500 focus:ring-2 focus:ring-emerald-200 sm:w-64"
-              />
+            <div class="rounded-2xl bg-white/[0.06] p-4">
+              <p class="text-xs font-semibold text-slate-500">전 영업일 대비</p>
+              <p
+                id="dailyChange"
+                class="mt-2 text-xl font-black tabular-nums"
+              ></p>
+            </div>
+            <div class="rounded-2xl bg-white/[0.06] p-4">
+              <p class="text-xs font-semibold text-slate-500">
+                10일 최고 / 최저
+              </p>
+              <p
+                id="rangeValue"
+                class="mt-2 text-base font-black tabular-nums"
+              ></p>
+            </div>
+            <div class="rounded-2xl bg-white/[0.06] p-4">
+              <p class="text-xs font-semibold text-slate-500">첫날 대비</p>
+              <p
+                id="periodChange"
+                class="mt-2 text-xl font-black tabular-nums"
+              ></p>
             </div>
           </div>
+
+          <div class="mt-5 rounded-2xl bg-white p-4 sm:p-6">
+            <div class="h-72 sm:h-80"><canvas id="exchangeChart"></canvas></div>
+          </div>
+
+          <div
+            class="mt-5 flex flex-col gap-2 text-xs text-slate-500 sm:flex-row sm:items-center sm:justify-between"
+          >
+            <p id="riseFallSummary"></p>
+            <p id="dataSource"></p>
+          </div>
         </div>
-
-        <div class="overflow-x-auto">
-          <table class="min-w-full divide-y divide-slate-200">
-            <thead class="bg-slate-50">
-              <tr>
-                <th
-                  class="whitespace-nowrap px-5 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500"
-                >
-                  통화코드
-                </th>
-
-                <th
-                  class="whitespace-nowrap px-5 py-4 text-left text-xs font-bold uppercase tracking-wider text-slate-500"
-                >
-                  통화명
-                </th>
-
-                <th
-                  class="whitespace-nowrap px-5 py-4 text-right text-xs font-bold uppercase tracking-wider text-slate-500"
-                >
-                  전신환 매입률
-                </th>
-
-                <th
-                  class="whitespace-nowrap px-5 py-4 text-right text-xs font-bold uppercase tracking-wider text-slate-500"
-                >
-                  전신환 매도율
-                </th>
-
-                <th
-                  class="whitespace-nowrap px-5 py-4 text-right text-xs font-bold uppercase tracking-wider text-slate-500"
-                >
-                  매매기준율
-                </th>
-
-                <th
-                  class="whitespace-nowrap px-5 py-4 text-right text-xs font-bold uppercase tracking-wider text-slate-500"
-                >
-                  장부가격
-                </th>
-              </tr>
-            </thead>
-
-            <tbody
-              id="exchangeTable"
-              class="divide-y divide-slate-100 bg-white"
-            >
-              {% for item in exchange_data %}
-
-              <tr class="exchange-row transition hover:bg-emerald-50">
-                <td class="whitespace-nowrap px-5 py-4">
-                  <span
-                    class="inline-flex rounded-full bg-slate-900 px-3 py-1 text-xs font-bold text-white"
-                  >
-                    {{ item["통화코드"] }}
-                  </span>
-                </td>
-
-                <td
-                  class="whitespace-nowrap px-5 py-4 font-medium text-slate-900"
-                >
-                  {{ item["통화명"] }}
-                </td>
-
-                <td
-                  class="whitespace-nowrap px-5 py-4 text-right text-sm text-slate-600"
-                >
-                  {{ item["전신환매입률"] }}
-                </td>
-
-                <td
-                  class="whitespace-nowrap px-5 py-4 text-right text-sm text-slate-600"
-                >
-                  {{ item["전신환매도율"] }}
-                </td>
-
-                <td class="whitespace-nowrap px-5 py-4 text-right">
-                  <span class="font-bold text-emerald-600">
-                    {{ item["매매기준율"] }}
-                  </span>
-                </td>
-
-                <td
-                  class="whitespace-nowrap px-5 py-4 text-right text-sm text-slate-600"
-                >
-                  {{ item["장부가격"] }}
-                </td>
-              </tr>
-
-              {% endfor %}
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      {% else %}
-
-      <div class="rounded-xl bg-white p-10 text-center shadow">
-        <p class="text-slate-500">표시할 환율 정보가 없습니다.</p>
       </div>
-
-      {% endif %}
-    </main>
-
-    <footer class="pb-10 text-center text-sm text-slate-500">
-      환율 정보는 실제 거래 환율과 차이가 있을 수 있습니다.
-    </footer>
+    </div>
 
     <script>
-      const searchInput = document.getElementById("searchInput");
-      const exchangeRows = document.querySelectorAll(".exchange-row");
+      const modal = document.getElementById("currencyModal");
+      const modalPanel = document.getElementById("modalPanel");
+      const modalClose = document.getElementById("modalClose");
+      const modalLoading = document.getElementById("modalLoading");
+      const modalError = document.getElementById("modalError");
+      const modalContent = document.getElementById("modalContent");
+      let exchangeChart = null;
+      let lastFocusedCard = null;
 
-      if (searchInput) {
-        searchInput.addEventListener("input", function () {
-          const keyword = this.value.toLowerCase().trim();
+      function formatRate(value) {
+        return new Intl.NumberFormat("ko-KR", {
+          maximumFractionDigits: 2,
+        }).format(value);
+      }
 
-          exchangeRows.forEach(function (row) {
-            const rowText = row.textContent.toLowerCase();
+      function formatSigned(value, suffix = "") {
+        const sign = value > 0 ? "+" : "";
+        return `${sign}${formatRate(value)}${suffix}`;
+      }
 
-            if (rowText.includes(keyword)) {
-              row.classList.remove("hidden");
-            } else {
-              row.classList.add("hidden");
-            }
-          });
+      function changeClass(element, value) {
+        element.classList.remove(
+          "text-emerald-400",
+          "text-red-400",
+          "text-slate-300",
+        );
+        element.classList.add(
+          value > 0
+            ? "text-red-400"
+            : value < 0
+              ? "text-emerald-400"
+              : "text-slate-300",
+        );
+      }
+
+      function closeModal() {
+        modal.classList.add("hidden");
+        modal.classList.remove("flex");
+        document.body.classList.remove("overflow-hidden");
+        if (lastFocusedCard) lastFocusedCard.focus();
+      }
+
+      function renderChart(history, currencyCode) {
+        if (exchangeChart) exchangeChart.destroy();
+        const canvas = document.getElementById("exchangeChart");
+        const gradient = canvas
+          .getContext("2d")
+          .createLinearGradient(0, 0, 0, 300);
+        gradient.addColorStop(0, "rgba(52, 211, 153, 0.3)");
+        gradient.addColorStop(1, "rgba(52, 211, 153, 0)");
+
+        exchangeChart = new Chart(canvas, {
+          type: "line",
+          data: {
+            labels: history.map(
+              (item) => `${item.date.slice(4, 6)}.${item.date.slice(6, 8)}`,
+            ),
+            datasets: [
+              {
+                label: `${currencyCode}/KRW`,
+                data: history.map((item) => item.value),
+                borderColor: "#10b981",
+                backgroundColor: gradient,
+                borderWidth: 3,
+                pointBackgroundColor: "#059669",
+                pointRadius: 3,
+                pointHoverRadius: 6,
+                fill: true,
+                tension: 0.3,
+              },
+            ],
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            interaction: { intersect: false, mode: "index" },
+            plugins: {
+              legend: { display: false },
+              tooltip: {
+                callbacks: {
+                  label: (context) => `${formatRate(context.parsed.y)}원`,
+                },
+              },
+            },
+            scales: {
+              x: { grid: { display: false }, ticks: { color: "#64748b" } },
+              y: {
+                beginAtZero: false,
+                grid: { color: "rgba(148, 163, 184, 0.16)" },
+                ticks: {
+                  color: "#64748b",
+                  callback: (value) => formatRate(value),
+                },
+              },
+            },
+          },
         });
       }
+
+      async function openCurrencyModal(card) {
+        const currencyCode = card.dataset.currency;
+        const currencyName = card.dataset.name;
+        lastFocusedCard = card;
+        document.getElementById("modalCode").textContent = currencyCode;
+        document.getElementById("modalTitle").textContent = currencyName;
+        modalLoading.classList.remove("hidden");
+        modalError.classList.add("hidden");
+        modalContent.classList.add("hidden");
+        modal.classList.remove("hidden");
+        modal.classList.add("flex");
+        document.body.classList.add("overflow-hidden");
+        modalClose.focus();
+
+        try {
+          const response = await fetch(
+            `/api/ecos/exchange/${encodeURIComponent(currencyCode)}`,
+          );
+          const payload = await response.json();
+          if (!response.ok)
+            throw new Error(
+              payload.error || "환율 데이터를 불러오지 못했습니다.",
+            );
+
+          const history = payload.history;
+          if (!Array.isArray(history) || history.length < 2)
+            throw new Error("비교할 환율 데이터가 충분하지 않습니다.");
+
+          const latest = history.at(-1);
+          const previous = history.at(-2);
+          const first = history[0];
+          const dailyDifference = latest.value - previous.value;
+          const dailyPercent = (dailyDifference / previous.value) * 100;
+          const periodPercent =
+            ((latest.value - first.value) / first.value) * 100;
+          const values = history.map((item) => item.value);
+          let riseDays = 0;
+          let fallDays = 0;
+
+          for (let index = 1; index < values.length; index += 1) {
+            if (values[index] > values[index - 1]) riseDays += 1;
+            if (values[index] < values[index - 1]) fallDays += 1;
+          }
+
+          document.getElementById("latestValue").textContent =
+            `${formatRate(latest.value)}원`;
+          const dailyChange = document.getElementById("dailyChange");
+          dailyChange.textContent = `${formatSigned(dailyDifference)}원 (${formatSigned(dailyPercent, "%")})`;
+          changeClass(dailyChange, dailyDifference);
+          document.getElementById("rangeValue").textContent =
+            `${formatRate(Math.max(...values))}원 / ${formatRate(Math.min(...values))}원`;
+          const periodChange = document.getElementById("periodChange");
+          periodChange.textContent = formatSigned(periodPercent, "%");
+          changeClass(periodChange, periodPercent);
+          document.getElementById("riseFallSummary").textContent =
+            `상승 ${riseDays}일 · 하락 ${fallDays}일 · 보합 ${history.length - 1 - riseDays - fallDays}일`;
+          document.getElementById("dataSource").textContent =
+            `기준일 ${latest.date} · ${latest.source}`;
+          renderChart(history, currencyCode);
+          modalContent.classList.remove("hidden");
+        } catch (error) {
+          modalError.textContent = error.message;
+          modalError.classList.remove("hidden");
+        } finally {
+          modalLoading.classList.add("hidden");
+        }
+      }
+
+      document
+        .querySelectorAll(".currency-card")
+        .forEach((card) =>
+          card.addEventListener("click", () => openCurrencyModal(card)),
+        );
+      modalClose.addEventListener("click", closeModal);
+      modal.addEventListener("click", (event) => {
+        if (event.target === modal) closeModal();
+      });
+      document.addEventListener("keydown", (event) => {
+        if (event.key === "Escape" && !modal.classList.contains("hidden"))
+          closeModal();
+      });
+      modalPanel.addEventListener("click", (event) => event.stopPropagation());
     </script>
   </body>
 </html>
